@@ -54,7 +54,7 @@ export default async function AlbumPage({ params }: PageProps<'/album/[slug]'>) 
           </div>
         </div>
         <div className="mt-6 flex justify-center md:justify-start">
-          <PlayButtons tracks={rows} albumSlug={album.slug} />
+          <PlayButtons tracks={rows} albumSlug={album.slug} addLabel={album.title} />
         </div>
       </header>
 

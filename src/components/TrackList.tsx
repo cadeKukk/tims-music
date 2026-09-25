@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Clock3, ListEnd, ListPlus, MoreHorizontal, Disc3, Play } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clock3, Disc3, ListEnd, ListMusic, ListPlus, MoreHorizontal, Play, Trash2 } from 'lucide-react';
+import { usePlaylists } from './playlists/PlaylistsProvider';
 import { usePlayer } from './player/PlayerProvider';
 import { Cover } from './Cover';
 import { formatTime } from '@/lib/cover';
@@ -16,12 +17,17 @@ export function TrackList({
   showCover = false,
   showAlbum = false,
   numbered = true,
+  onRemove,
+  onMove,
 }: {
   tracks: TrackRow[];
   mainArtist?: string;
   showCover?: boolean;
   showAlbum?: boolean;
   numbered?: boolean;
+  /** Playlist editing: shows "Remove" / "Move up/down" in each row's menu. */
+  onRemove?: (track: TrackRow, index: number) => void;
+  onMove?: (index: number, delta: -1 | 1) => void;
 }) {
   const { playTracks, current, playing, toggle } = usePlayer();
   const multiDisc = new Set(tracks.map((t) => t.disc ?? 1)).size > 1;
@@ -80,7 +86,12 @@ export function TrackList({
                   )}
                 </button>
                 <span className="hidden text-right text-sm tabular-nums text-muted md:block">{formatTime(t.duration)}</span>
-                <TrackMenu track={t} />
+                <TrackMenu
+                  track={t}
+                  onRemove={onRemove && (() => onRemove(t, i))}
+                  onMoveUp={onMove && i > 0 ? () => onMove(i, -1) : undefined}
+                  onMoveDown={onMove && i < tracks.length - 1 ? () => onMove(i, 1) : undefined}
+                />
               </div>
             </li>
           );
@@ -90,9 +101,18 @@ export function TrackList({
   );
 }
 
-function TrackMenu({ track }: { track: PlayerTrack }) {
+function TrackMenu({
+  track, onRemove, onMoveUp, onMoveDown,
+}: {
+  track: PlayerTrack;
+  onRemove?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+}) {
   const { playNext, addToQueue } = usePlayer();
+  const { pick } = usePlaylists();
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -114,7 +134,12 @@ function TrackMenu({ track }: { track: PlayerTrack }) {
   return (
     <div ref={ref} className="relative flex justify-end">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          // Open upward near the bottom of the screen so the menu isn't hidden behind the player.
+          const r = ref.current?.getBoundingClientRect();
+          setOpenUp(!!r && r.bottom > window.innerHeight - 340);
+          setOpen((o) => !o);
+        }}
         aria-label="More options"
         className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-white/10 hover:text-fg md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
       >
@@ -126,16 +151,35 @@ function TrackMenu({ track }: { track: PlayerTrack }) {
         </span>
       )}
       {open && (
-        <div className="fade-in absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-xl border border-line bg-elevated py-1 text-sm shadow-2xl">
+        <div className={`fade-in absolute right-0 z-20 w-56 ${openUp ? 'bottom-9' : 'top-9'} overflow-hidden rounded-xl border border-line bg-elevated py-1 text-sm shadow-2xl`}>
           <button onClick={act(() => playNext(track), 'Playing next')} className="flex w-full items-center gap-3 px-3 py-2 hover:bg-hover">
             <ListPlus className="size-4" /> Play next
           </button>
           <button onClick={act(() => addToQueue(track), 'Added to queue')} className="flex w-full items-center gap-3 px-3 py-2 hover:bg-hover">
             <ListEnd className="size-4" /> Add to queue
           </button>
+          <button onClick={() => { setOpen(false); pick([track.id], track.title); }} className="flex w-full items-center gap-3 px-3 py-2 hover:bg-hover">
+            <ListMusic className="size-4" /> Add to playlist…
+          </button>
           <Link href={`/album/${track.albumSlug}`} className="flex items-center gap-3 px-3 py-2 hover:bg-hover">
             <Disc3 className="size-4" /> Go to album
           </Link>
+          {(onMoveUp || onMoveDown || onRemove) && <div className="my-1 border-t border-line" />}
+          {onMoveUp && (
+            <button onClick={() => { setOpen(false); onMoveUp(); }} className="flex w-full items-center gap-3 px-3 py-2 hover:bg-hover">
+              <ArrowUp className="size-4" /> Move up
+            </button>
+          )}
+          {onMoveDown && (
+            <button onClick={() => { setOpen(false); onMoveDown(); }} className="flex w-full items-center gap-3 px-3 py-2 hover:bg-hover">
+              <ArrowDown className="size-4" /> Move down
+            </button>
+          )}
+          {onRemove && (
+            <button onClick={() => { setOpen(false); onRemove(); }} className="flex w-full items-center gap-3 px-3 py-2 text-red-400 hover:bg-hover">
+              <Trash2 className="size-4" /> Remove from playlist
+            </button>
+          )}
         </div>
       )}
     </div>

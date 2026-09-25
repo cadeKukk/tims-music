@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ListMusic, MicVocal, Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react';
+import { ListMusic, ListPlus, MicVocal, Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react';
+import { usePlaylists } from '../playlists/PlaylistsProvider';
 import { usePlaybackTime, usePlayer } from './PlayerProvider';
 import { Controls, PlayPauseIcon, SeekBar } from './Controls';
 import { Cover } from '../Cover';
@@ -9,6 +10,7 @@ import { useState } from 'react';
 
 export function PlayerBar() {
   const { current, setNowPlayingOpen, openNowPlaying, nowPlayingOpen, nowPlayingTab, volume, setVolume, toggle, next } = usePlayer();
+  const { pick } = usePlaylists();
   const [lastVolume, setLastVolume] = useState(1);
   if (!current) return null;
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -52,6 +54,14 @@ export function PlayerBar() {
               {current.artist}
             </Link>
           </div>
+          <button
+            onClick={() => pick([current.id], current.title)}
+            title="Add to playlist"
+            aria-label="Add to playlist"
+            className="shrink-0 p-1 text-muted transition hover:text-fg"
+          >
+            <ListPlus className="size-[18px]" />
+          </button>
         </div>
         <div className="flex flex-col gap-1.5">
           <Controls />

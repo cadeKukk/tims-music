@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ChevronDown, ListMusic, MicVocal, X } from 'lucide-react';
+import { ChevronDown, ListMusic, ListPlus, MicVocal, X } from 'lucide-react';
+import { usePlaylists } from '../playlists/PlaylistsProvider';
 import { usePlaybackTime, usePlayer, type NowPlayingTab } from './PlayerProvider';
 import { Controls, SeekBar } from './Controls';
 import { Cover } from '../Cover';
@@ -163,8 +164,10 @@ export function NowPlaying() {
 
 function TitleBlock({ onNavigate, compact = false }: { onNavigate: () => void; compact?: boolean }) {
   const { current } = usePlayer();
+  const { pick } = usePlaylists();
   if (!current) return null;
   return (
+    <div className="flex min-w-0 flex-1 items-center gap-3">
     <div className="min-w-0 flex-1">
       <div className={`truncate font-bold ${compact ? 'text-base' : 'text-xl md:text-2xl'}`}>{current.title}</div>
       <div className={`truncate text-white/70 ${compact ? 'text-sm' : ''}`}>
@@ -176,6 +179,15 @@ function TitleBlock({ onNavigate, compact = false }: { onNavigate: () => void; c
           </>
         )}
       </div>
+    </div>
+    <button
+      onClick={() => pick([current.id], current.title)}
+      title="Add to playlist"
+      aria-label="Add to playlist"
+      className="grid size-10 shrink-0 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+    >
+      <ListPlus className="size-6" />
+    </button>
     </div>
   );
 }

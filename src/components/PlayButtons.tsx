@@ -1,12 +1,14 @@
 'use client';
 
-import { Play, Shuffle, Pause, Radio } from 'lucide-react';
+import { ListPlus, Play, Shuffle, Pause, Radio } from 'lucide-react';
 import { usePlayer } from './player/PlayerProvider';
+import { usePlaylists } from './playlists/PlaylistsProvider';
 import type { PlayerTrack } from '@/lib/types';
 
 /** Play / Shuffle for a known track list (album page). */
-export function PlayButtons({ tracks, albumSlug }: { tracks: PlayerTrack[]; albumSlug?: string }) {
+export function PlayButtons({ tracks, albumSlug, addLabel }: { tracks: PlayerTrack[]; albumSlug?: string; addLabel?: string }) {
   const { playTracks, current, playing, toggle } = usePlayer();
+  const { pick } = usePlaylists();
   const isCurrent = albumSlug && current?.albumSlug === albumSlug;
   return (
     <div className="flex items-center gap-3">
@@ -23,6 +25,16 @@ export function PlayButtons({ tracks, albumSlug }: { tracks: PlayerTrack[]; albu
       >
         <Shuffle className="size-5" /> Shuffle
       </button>
+      {addLabel && (
+        <button
+          onClick={() => pick(tracks.map((t) => t.id), addLabel)}
+          title="Add to playlist"
+          aria-label="Add to playlist"
+          className="grid size-12 place-items-center rounded-full bg-white/10 backdrop-blur transition hover:bg-white/20"
+        >
+          <ListPlus className="size-5" />
+        </button>
+      )}
     </div>
   );
 }

@@ -71,7 +71,7 @@ async function playCounts(since: string) {
   return new Map(rows.map((r) => [r.track_id, Number(r.plays)]));
 }
 
-async function tracksByIds(ids: string[]) {
+export async function tracksByIds(ids: string[]) {
   if (!ids.length) return [];
   const rows = must(
     await db.from('tracks').select(`${TRACK_COLS}, album_id`).in('id', ids),

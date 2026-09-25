@@ -1,14 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Disc3, Home, Mic2, Search } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Disc3, Home, ListMusic, Mic2, Plus, Search } from 'lucide-react';
 import { coverUrl } from '@/lib/cover';
+import { usePlaylists } from './playlists/PlaylistsProvider';
+import { PlaylistCover } from './playlists/PlaylistCover';
 
 const LINKS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/albums', label: 'Albums', icon: Disc3 },
+  { href: '/playlists', label: 'Playlists', icon: ListMusic },
   { href: '/artists', label: 'Artists', icon: Mic2 },
 ] as const;
 
@@ -18,6 +21,12 @@ type SidebarArtist = { slug: string; name: string; cover: string | null };
 
 export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
   const path = usePathname();
+  const router = useRouter();
+  const { playlists, create } = usePlaylists();
+  const newPlaylist = async () => {
+    const id = await create(`My playlist #${playlists.length + 1}`);
+    if (id) router.push(`/playlist/${id}`);
+  };
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface/60 pb-[var(--player-h)] backdrop-blur md:flex">
       <Link href="/" className="flex items-center gap-2.5 px-6 pt-6 pb-5">
@@ -38,8 +47,27 @@ export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
           </Link>
         ))}
       </nav>
-      <div className="mt-6 px-6 pb-2 text-xs font-semibold uppercase tracking-wider text-faint">Artists</div>
-      <div className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
+      <div className="flex-1 overflow-y-auto px-3 pb-4">
+        <div className="mt-6 flex items-center justify-between px-3 pb-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-faint">Playlists</span>
+          <button onClick={newPlaylist} title="New playlist" aria-label="New playlist" className="grid size-6 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg">
+            <Plus className="size-4" />
+          </button>
+        </div>
+        {playlists.length === 0 && <p className="px-3 pb-1 text-xs text-faint">Create one with + or from any song&apos;s ⋯ menu.</p>}
+        {playlists.map((p) => (
+          <Link
+            key={p.id}
+            href={`/playlist/${p.id}`}
+            className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm transition ${
+              path === `/playlist/${p.id}` ? 'bg-hover text-fg' : 'text-muted hover:bg-hover/60 hover:text-fg'
+            }`}
+          >
+            <PlaylistCover covers={p.covers} className="size-8 shrink-0 rounded" />
+            <span className="truncate">{p.name}</span>
+          </Link>
+        ))}
+        <div className="mt-6 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-faint">Artists</div>
         {artists.map((a) => (
           <Link
             key={a.slug}

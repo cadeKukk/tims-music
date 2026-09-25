@@ -114,3 +114,36 @@ $$;
 
 revoke execute on function public.search_catalog(text,int) from anon, authenticated, public;
 revoke execute on function public.top_tracks(interval,int) from anon, authenticated, public;
+
+-- ---------- Playlists ----------
+
+create table public.playlists (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (length(trim(name)) between 1 and 100),
+  description text check (description is null or length(description) <= 300),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.playlist_tracks (
+  playlist_id uuid not null references public.playlists(id) on delete cascade,
+  track_id uuid not null references public.tracks(id) on delete cascade,
+  position double precision not null,   -- fractional so inserts/moves don't renumber the list
+  added_at timestamptz not null default now(),
+  primary key (playlist_id, track_id)
+);
+create index playlist_tracks_order_idx on public.playlist_tracks(playlist_id, position);
+
+alter table public.playlists enable row level security;
+alter table public.playlist_tracks enable row level security;
+
+-- Keep updated_at fresh when a playlist's contents change, so lists can sort by "recently updated".
+create or replace function public.touch_playlist() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  update playlists set updated_at = now() where id = coalesce(new.playlist_id, old.playlist_id);
+  return null;
+end $$;
+create trigger playlist_tracks_touch after insert or update or delete on public.playlist_tracks
+  for each row execute function public.touch_playlist();
+revoke execute on function public.touch_playlist() from anon, authenticated, public;

@@ -4,7 +4,7 @@ import { AlbumCard } from '@/components/AlbumCard';
 import { Shelf } from '@/components/Shelf';
 import { TrackList } from '@/components/TrackList';
 import { Cover } from '@/components/Cover';
-import { Greeting, JumpBackIn } from './HomeClient';
+import { Greeting, JumpBackIn, YourPlaylists } from './HomeClient';
 import type { Album } from '@/lib/types';
 
 export const revalidate = 60;
@@ -23,6 +23,8 @@ export default async function HomePage() {
       </div>
 
       <JumpBackIn />
+
+      <YourPlaylists />
 
       {home.mostPlayed.length > 0 && (
         <section className="mt-8">

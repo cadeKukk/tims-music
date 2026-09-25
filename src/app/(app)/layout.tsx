@@ -1,4 +1,5 @@
 import { PlayerProvider } from '@/components/player/PlayerProvider';
+import { PlaylistsProvider } from '@/components/playlists/PlaylistsProvider';
 import { PlayerBar } from '@/components/player/PlayerBar';
 import { NowPlaying } from '@/components/player/NowPlaying';
 import { Sidebar, MobileNav } from '@/components/Nav';
@@ -8,6 +9,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const artists = await getArtists();
   return (
     <PlayerProvider>
+      <PlaylistsProvider>
       {/* Solid strip behind the iOS status bar when installed to the home screen */}
       <div aria-hidden className="fixed inset-x-0 top-0 z-50 h-[env(safe-area-inset-top)] bg-bg md:hidden" />
       <Sidebar artists={artists.map(({ slug, name, cover }) => ({ slug, name, cover }))} />
@@ -17,6 +19,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
       <PlayerBar />
       <MobileNav />
       <NowPlaying />
+      </PlaylistsProvider>
     </PlayerProvider>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Play } from 'lucide-react';
+import { Pause, Play } from 'lucide-react';
 import { Cover } from './Cover';
 import { usePlayer } from './player/PlayerProvider';
 import type { PlayerTrack } from '@/lib/types';
@@ -52,15 +52,17 @@ export function AlbumCard({ album, sizes = '(min-width: 768px) 200px, 45vw' }: {
         <button
           onClick={onPlay}
           onPointerDown={() => prefetchAlbum(album.slug)}
-          aria-label={`Play ${album.title}`}
+          aria-label={isCurrent && playing ? `Pause ${album.title}` : `Play ${album.title}`}
           className={`absolute right-2 bottom-2 grid size-11 place-items-center rounded-full bg-accent text-black shadow-xl transition-all duration-200 hover:scale-105 ${
-            isCurrent && playing
+            // The album that's loaded in the player always shows its button (pause or resume),
+            // so touch screens, which have no hover, can control it from the cover too.
+            isCurrent
               ? 'translate-y-0 opacity-100'
               : 'pointer-events-none translate-y-2 opacity-0 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100'
           }`}
         >
           {isCurrent && playing ? (
-            <span className="eq"><span /><span /><span /></span>
+            <Pause className="size-5" fill="currentColor" />
           ) : (
             <Play className="size-5 translate-x-[1px]" fill="currentColor" />
           )}

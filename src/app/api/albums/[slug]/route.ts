@@ -1,0 +1,7 @@
+import { getAlbumPlayerTracks } from '@/lib/catalog';
+
+export async function GET(_req: Request, ctx: RouteContext<'/api/albums/[slug]'>) {
+  const tracks = await getAlbumPlayerTracks((await ctx.params).slug);
+  if (!tracks) return Response.json({ error: 'not found' }, { status: 404 });
+  return Response.json(tracks, { headers: { 'Cache-Control': 'private, max-age=600' } });
+}

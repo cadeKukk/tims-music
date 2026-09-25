@@ -32,7 +32,9 @@ const FORCE_COVERS = flag('--force-covers');
 const ALLOW_PAID = flag('--allow-paid');
 const SKIP_UPLOAD = flag('--skip-upload');
 // R2's free tier is 10 GB-month of storage; stop well short so the bill stays at $0.
-const FREE_STORAGE_LIMIT = 9 * 1024 ** 3;
+// Decimal GB (1e9 bytes), the same unit the Cloudflare dashboard shows.
+const GB = 1e9;
+const FREE_STORAGE_LIMIT = 9 * GB;
 const COVER_SIZES = [300, 600, 1200];
 const IMAGE_RE = /\.(jpe?g|jfif|png|webp)$/i;
 const SKIP_DIRS = new Set(['web', 'node_modules']);
@@ -249,7 +251,7 @@ if (DRY) {
 // ---------- upload to R2 ----------
 
 const totalBytes = albums.flatMap((a) => a.tracks).reduce((sum, t) => sum + t.size, 0);
-console.log(`Library size: ${(totalBytes / 1024 ** 3).toFixed(2)} GB (R2 free tier: 10 GB)`);
+console.log(`Library size: ${(totalBytes / GB).toFixed(2)} GB (R2 free tier: 10 GB)`);
 if (totalBytes > FREE_STORAGE_LIMIT && !ALLOW_PAID) {
   console.error('Stopping: this would exceed the 9 GB safety limit under R2\'s free tier. Remove music or re-run with --allow-paid.');
   process.exit(1);

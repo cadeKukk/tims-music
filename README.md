@@ -24,7 +24,7 @@ The whole stack runs on free plans. Cloudflare is the only service with a card o
 | | Cloudflare R2 | Supabase | Vercel |
 |---|---|---|---|
 | **Stores** | The MP3 files (939 tracks) | Artist/album/track info, playlists, play history | Website code and album art |
-| **Size** | ~4.3 GB | Under 1 MB | ~11 MB of covers |
+| **Size** | ~4.65 GB | Under 1 MB | ~11 MB of covers |
 | **Free limit that matters** | 10 GB storage; streaming free | 500 MB database, 5 GB egress/month | 100 GB bandwidth/month |
 | **Card on file** | Yes (required to turn on R2) | No | No |
 | **If a limit is exceeded** | Billed (~$0.015 per extra GB-month) | Warning, then restricted; never billed | Paused; never billed |
@@ -47,7 +47,7 @@ This project uses **one Cloudflare product, R2 Object Storage**: a single bucket
 | Class B operations (reads) | 10 million | Each play or seek, plus ingest's existence checks | $0.36 / million |
 | Egress (streaming) | Unlimited | Audio sent to listeners | Free |
 
-The ingest script refuses to upload more than 9 GB unless you pass `--allow-paid`, and `--prune` deletes removed tracks from R2 (deletes are free) so they stop counting toward storage.
+Sizes here use decimal GB (1 GB = 1,000,000,000 bytes), the same unit as the Cloudflare dashboard and macOS Finder. Tools like `du` use binary units, which is why they report the same library as ~4.33 GB. The ingest script refuses to upload more than 9 GB unless you pass `--allow-paid`, and `--prune` deletes removed tracks from R2 (deletes are free) so they stop counting toward storage.
 
 **Sources.** Everything in the R2 table comes from Cloudflare's [R2 pricing page](https://developers.cloudflare.com/r2/pricing/):
 - The **Free tier** table gives the free amounts.

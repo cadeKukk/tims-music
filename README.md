@@ -5,7 +5,7 @@ A personal streaming site for the music in the parent folder, live at https://my
 ```
 Browser ──▶ Vercel (Next.js)  ── pages, search, API
    │            │
-   │            └──▶ Supabase Postgres ── artists / albums / tracks / plays
+   │            └──▶ Supabase Postgres ── artists / albums / tracks / plays / playlists
    │
    └──(302 signed URL)──▶ Cloudflare R2 ── the MP3s (free egress)
 ```
@@ -14,6 +14,61 @@ Browser ──▶ Vercel (Next.js)  ── pages, search, API
 - **Audio** never passes through Vercel. `/api/stream/<id>` redirects to a signed R2 URL that expires after a few hours, so the bucket itself stays private.
 - **No login.** Anyone with the link can listen; the site is marked `noindex` so search engines skip it.
 - **Supabase** tables have RLS enabled with no public policies. Only the server (using the secret key) can read them.
+
+## Costs and free tiers
+
+The whole stack runs on free plans. Cloudflare is the only service with a card on file, and storage over 10 GB is the only thing there that costs money.
+
+### What each service holds
+
+| | Cloudflare R2 | Supabase | Vercel |
+|---|---|---|---|
+| **Stores** | The MP3 files (939 tracks) | Artist/album/track info, playlists, play history | Website code and album art |
+| **Size** | ~4.3 GB | Under 1 MB | ~11 MB of covers |
+| **Free limit that matters** | 10 GB storage; streaming free | 500 MB database, 5 GB egress/month | 100 GB bandwidth/month |
+| **Card on file** | Yes (required to turn on R2) | No | No |
+| **If a limit is exceeded** | Billed (~$0.015 per extra GB-month) | Warning, then restricted; never billed | Paused; never billed |
+
+### What happens when a song plays
+
+1. Vercel renders the page using the catalog from Supabase.
+2. Pressing play hits `/api/stream/<id>` on Vercel, which redirects to a temporary signed R2 URL.
+3. The audio streams directly from R2 to the browser, never through Vercel or Supabase. That's one R2 read (Class B), and the bandwidth is free.
+4. After 30 seconds of listening, a play is logged in Supabase for "Most played".
+
+### Cloudflare: only R2 is used
+
+This project uses **one Cloudflare product, R2 Object Storage**: a single bucket (`tims-music`, Standard storage, public access off) and a single API token scoped to it. Workers, D1, KV, Durable Objects and Pages are not used, so their limits on the [Workers plans page](https://dash.cloudflare.com/?to=/:account/workers/plans) (for example "5 GB" for D1 and Durable Objects) don't apply.
+
+| R2 metric (per month) | Free | Used by | Price over the free amount |
+|---|---|---|---|
+| Storage | 10 GB-month | The MP3s | $0.015 / GB-month |
+| Class A operations (writes) | 1 million | Uploads from `npm run ingest` | $4.50 / million |
+| Class B operations (reads) | 10 million | Each play or seek, plus ingest's existence checks | $0.36 / million |
+| Egress (streaming) | Unlimited | Audio sent to listeners | Free |
+
+The ingest script refuses to upload more than 9 GB unless you pass `--allow-paid`, and `--prune` deletes removed tracks from R2 (deletes are free) so they stop counting toward storage.
+
+**Sources.** Everything in the R2 table comes from Cloudflare's [R2 pricing page](https://developers.cloudflare.com/r2/pricing/):
+- The **Free tier** table gives the free amounts.
+- The **R2 pricing** table gives the Standard storage prices.
+- The **Egress** row in both tables says Free.
+- The **Caution** note says the free tier only covers Standard storage.
+- The **Class A / Class B operations** sections list which operations count as each (PutObject counts as Class A; GetObject and HeadObject count as Class B).
+- The FAQ says requests rejected as unauthorized aren't billed.
+
+Supabase's free-plan limits are on its [pricing page](https://supabase.com/pricing). A daily Vercel cron (`vercel.json` calling `/api/keepalive`) keeps the free project from pausing after 7 days of inactivity.
+
+### Checking usage in the Cloudflare dashboard
+
+These links open the matching page in whichever Cloudflare account you're logged into:
+
+- [R2 overview](https://dash.cloudflare.com/?to=/:account/r2/overview): current bill, Class A/B operation counts, total storage. There's also an **Add Budget Alert** button for email alerts if charges ever appear.
+- [The `tims-music` bucket](https://dash.cloudflare.com/?to=/:account/r2/default/buckets/tims-music): storage class, public access, stored files.
+- [R2 API tokens](https://dash.cloudflare.com/?to=/:account/r2/api-tokens): the token the app and ingest script use.
+- [Billing](https://dash.cloudflare.com/?to=/:account/billing): payment method and invoices.
+
+The dashboard's storage total updates with a delay. Right after an upload it can show 0 B for a few hours even though the files are there.
 
 ## Setting up from scratch
 

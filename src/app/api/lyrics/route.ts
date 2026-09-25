@@ -1,5 +1,5 @@
 // Lyrics from LRCLIB (free, no key). Returns time-synced lines when available.
-const UA = "TimsMusic/1.0 (private listening site)";
+const UA = "EchoChamber/1.0 (+https://myechochamber.vercel.app)";
 
 type LrcLibResult = { syncedLyrics: string | null; plainLyrics: string | null; instrumental: boolean; duration: number };
 

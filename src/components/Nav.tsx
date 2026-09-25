@@ -22,7 +22,7 @@ export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface/60 pb-[var(--player-h)] backdrop-blur md:flex">
       <Link href="/" className="flex items-center gap-2.5 px-6 pt-6 pb-5">
         <span className="grid size-8 place-items-center rounded-lg bg-accent text-lg text-black">♪</span>
-        <span className="text-lg font-bold tracking-tight">Tim&apos;s Music</span>
+        <span className="text-lg font-bold tracking-tight">Echo Chamber</span>
       </Link>
       <nav className="space-y-0.5 px-3">
         {LINKS.map(({ href, label, icon: Icon }) => (

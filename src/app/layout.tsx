@@ -13,10 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Tim's Music", template: "%s · Tim's Music" },
+  title: { default: "Echo Chamber", template: "%s · Echo Chamber" },
   description: "A private music library.",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, title: "Tim's Music", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Echo Chamber", statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon.svg", apple: "/icons/apple-touch-icon.png" },
 };
 

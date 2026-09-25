@@ -1,6 +1,6 @@
-# Tim's Music
+# Echo Chamber
 
-A private streaming site for the music in the parent folder. Next.js on Vercel, catalog in Supabase, audio in Cloudflare R2.
+A personal streaming site for the music in the parent folder, live at https://myechochamber.vercel.app. Next.js on Vercel, catalog in Supabase, audio in Cloudflare R2.
 
 ```
 Browser ──▶ Vercel (Next.js)  ── pages, search, API

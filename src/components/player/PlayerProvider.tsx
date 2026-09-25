@@ -381,7 +381,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // ---- tab title ----
   useEffect(() => {
     if (current && playing) document.title = `${current.title} · ${current.artist}`;
-    else document.title = "Tim's Music";
+    else document.title = "Echo Chamber";
   }, [current, playing]);
 
   // ---- keyboard shortcuts ----

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Tim's Music",
-    short_name: 'Music',
+    name: "Echo Chamber",
+    short_name: 'Echo Chamber',
     start_url: '/',
     display: 'standalone',
     background_color: '#0b0b0d',

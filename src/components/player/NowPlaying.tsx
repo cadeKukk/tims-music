@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ChevronDown, ListMusic, ListPlus, MicVocal, X } from 'lucide-react';
 import { usePlaylists } from '../playlists/PlaylistsProvider';
+import { DevicesButton, PlayingOn } from './Devices';
+import { useConnect } from './ConnectLayer';
 import { usePlaybackTime, usePlayer, type NowPlayingTab } from './PlayerProvider';
 import { Controls, SeekBar } from './Controls';
 import { Cover } from '../Cover';
@@ -26,6 +28,7 @@ function useIsDesktop() {
 
 export function NowPlaying() {
   const { current, nowPlayingOpen, setNowPlayingOpen, nowPlayingTab: tab, setNowPlayingTab: setTab } = usePlayer();
+  const { isRemote } = useConnect();
   const isDesktop = useIsDesktop();
   // Phones show artwork by default; tapping Lyrics / Up next swaps it for that panel.
   const [mobilePanel, setMobilePanel] = useState(false);
@@ -100,10 +103,12 @@ export function NowPlaying() {
               </button>
             ))}
           </div>
-          <div className="mx-3 min-w-0 flex-1 truncate text-center text-xs font-semibold uppercase tracking-wider text-white/60 md:hidden">
-            {current.albumTitle}
+          <div className="mx-3 flex min-w-0 flex-1 justify-center truncate text-center text-xs font-semibold uppercase tracking-wider text-white/60 md:hidden">
+            {isRemote ? <PlayingOn className="normal-case tracking-normal" /> : current.albumTitle}
           </div>
-          <div className="size-11" />
+          <div className="grid size-11 place-items-center">
+            <DevicesButton className="grid size-11 place-items-center rounded-full text-white/80 hover:bg-white/10" size="size-6" />
+          </div>
         </div>
         {/* Grab handle hint for swipe-to-close */}
         <div className="mx-auto -mt-1 h-1 w-10 shrink-0 rounded-full bg-white/25 md:hidden" aria-hidden />
@@ -132,6 +137,7 @@ export function NowPlaying() {
             )}
 
             <div className="shrink-0 space-y-4 pt-5 md:pt-6">
+              <PlayingOn className="hidden md:flex" />
               {!(showPanel && !isDesktop) && <TitleBlock onNavigate={close} />}
               <SeekBar className="text-white/70" />
               <Controls size="lg" />

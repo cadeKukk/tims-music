@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { ListMusic, ListPlus, MicVocal, Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react';
 import { usePlaylists } from '../playlists/PlaylistsProvider';
+import { DevicesButton, PlayingOn } from './Devices';
+import { useConnect } from './ConnectLayer';
 import { usePlaybackTime, usePlayer } from './PlayerProvider';
 import { Controls, PlayPauseIcon, SeekBar } from './Controls';
 import { Cover } from '../Cover';
@@ -11,6 +13,7 @@ import { useState } from 'react';
 export function PlayerBar() {
   const { current, setNowPlayingOpen, openNowPlaying, nowPlayingOpen, nowPlayingTab, volume, setVolume, toggle, next } = usePlayer();
   const { pick } = usePlaylists();
+  const { isRemote } = useConnect();
   const [lastVolume, setLastVolume] = useState(1);
   if (!current) return null;
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -27,9 +30,10 @@ export function PlayerBar() {
             <Cover coverKey={current.cover} alt="" sizes="48px" className="size-11 rounded-md" />
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold">{current.title}</div>
-              <div className="truncate text-xs text-white/70">{current.artist}</div>
+              {isRemote ? <PlayingOn /> : <div className="truncate text-xs text-white/70">{current.artist}</div>}
             </div>
           </button>
+          <DevicesButton className="grid size-10 place-items-center text-white/80" size="size-5" />
           <button onClick={toggle} aria-label="Play or pause" className="grid size-10 place-items-center">
             <PlayPauseIcon className="size-6" />
           </button>
@@ -53,6 +57,7 @@ export function PlayerBar() {
             <Link href={`/artist/${current.artistSlug}`} className="block truncate text-xs text-muted hover:text-fg hover:underline">
               {current.artist}
             </Link>
+            <PlayingOn className="mt-0.5" />
           </div>
           <button
             onClick={() => pick([current.id], current.title)}
@@ -68,6 +73,7 @@ export function PlayerBar() {
           <SeekBar />
         </div>
         <div className="flex items-center justify-end gap-4 text-muted">
+          <DevicesButton />
           {([['lyrics', MicVocal, 'Lyrics'], ['queue', ListMusic, 'Up next']] as const).map(([tab, Icon, label]) => {
             const active = nowPlayingOpen && nowPlayingTab === tab;
             return (

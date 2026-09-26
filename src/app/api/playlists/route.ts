@@ -1,15 +1,22 @@
-import { createPlaylist, listPlaylists } from '@/lib/playlists';
+import { getUser, handle, requireUser } from '@/lib/auth';
+import { createPlaylist, listLibrary } from '@/lib/playlists';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  return Response.json(await listPlaylists());
-}
+// The signed-in user's library (own + shared + saved). Guests have none.
+export const GET = handle(async () => {
+  const user = await getUser();
+  return Response.json(user ? await listLibrary(user) : []);
+});
 
-export async function POST(req: Request) {
+export const POST = handle(async (req: Request) => {
+  const user = await requireUser();
   const body = await req.json().catch(() => ({}));
-  const name = typeof body.name === 'string' && body.name.trim() ? body.name : 'New playlist';
-  const trackIds = Array.isArray(body.trackIds) ? body.trackIds.slice(0, 1000) : [];
-  const id = await createPlaylist(name, trackIds);
+  const id = await createPlaylist(
+    user,
+    typeof body.name === 'string' ? body.name : '',
+    body.visibility === 'public' ? 'public' : 'private',
+    Array.isArray(body.trackIds) ? body.trackIds.slice(0, 1000) : [],
+  );
   return Response.json({ id }, { status: 201 });
-}
+});

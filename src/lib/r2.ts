@@ -25,3 +25,19 @@ export async function signedAudioUrl(key: string) {
   });
   return signed.url;
 }
+
+const objectUrl = (key: string) =>
+  `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET}/${key}`;
+
+export async function putObject(key: string, body: ArrayBuffer | Uint8Array, contentType: string) {
+  const res = await r2.fetch(objectUrl(key), {
+    method: 'PUT',
+    body: body as BodyInit,
+    headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' },
+  });
+  if (!res.ok) throw new Error(`R2 upload failed: ${res.status}`);
+}
+
+export async function deleteObject(key: string) {
+  await r2.fetch(objectUrl(key), { method: 'DELETE' });
+}

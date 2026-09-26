@@ -1,4 +1,5 @@
 import { PlayerProvider } from '@/components/player/PlayerProvider';
+import { SessionProvider } from '@/components/account/SessionProvider';
 import { PlaylistsProvider } from '@/components/playlists/PlaylistsProvider';
 import { PlayerBar } from '@/components/player/PlayerBar';
 import { NowPlaying } from '@/components/player/NowPlaying';
@@ -8,6 +9,7 @@ import { getArtists } from '@/lib/catalog';
 export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const artists = await getArtists();
   return (
+    <SessionProvider>
     <PlayerProvider>
       <PlaylistsProvider>
       {/* Solid strip behind the iOS status bar when installed to the home screen */}
@@ -21,5 +23,6 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
       <NowPlaying />
       </PlaylistsProvider>
     </PlayerProvider>
+    </SessionProvider>
   );
 }

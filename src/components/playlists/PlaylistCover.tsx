@@ -2,9 +2,12 @@
 import { ListMusic } from 'lucide-react';
 import { coverUrl } from '@/lib/cover';
 
-/** A 2x2 mosaic of album covers (or a single cover / placeholder when there are fewer). */
-export function PlaylistCover({ covers, className = '', large = false }: { covers: string[]; className?: string; large?: boolean }) {
+/** A custom uploaded cover, else a 2x2 mosaic of album covers (or one cover / a placeholder). */
+export function PlaylistCover({
+  covers, custom = null, className = '', large = false,
+}: { covers: string[]; custom?: string | null; className?: string; large?: boolean }) {
   const size = large ? 600 : 300;
+  if (custom) return <img src={custom} alt="" className={`aspect-square object-cover ${className}`} />;
   if (covers.length === 0) {
     return (
       <div className={`grid aspect-square place-items-center bg-gradient-to-br from-accent/60 to-indigo-600/60 ${className}`}>

@@ -36,7 +36,7 @@ export function YourPlaylists() {
     <Shelf title="Your playlists" href="/playlists">
       {playlists.slice(0, 12).map((p) => (
         <Link key={p.id} href={`/playlist/${p.id}`} className="block rounded-xl p-2 transition hover:bg-hover/70">
-          <PlaylistCover covers={p.covers} className="w-full rounded-lg shadow-lg shadow-black/40" />
+          <PlaylistCover covers={p.covers} custom={p.customCover} className="w-full rounded-lg shadow-lg shadow-black/40" />
           <div className="mt-2.5 truncate text-sm font-semibold">{p.name}</div>
           <div className="truncate text-xs text-muted">{p.trackCount} {p.trackCount === 1 ? 'song' : 'songs'}</div>
         </Link>

@@ -147,3 +147,72 @@ end $$;
 create trigger playlist_tracks_touch after insert or update or delete on public.playlist_tracks
   for each row execute function public.touch_playlist();
 revoke execute on function public.touch_playlist() from anon, authenticated, public;
+
+-- ---------- Accounts, sharing and device sync ----------
+
+create extension if not exists citext with schema extensions;
+
+create table public.users (
+  id uuid primary key default gen_random_uuid(),
+  username extensions.citext not null unique
+    check (username::text ~ '^[a-zA-Z0-9_.]{3,20}$'),
+  pin_hash text not null,                              -- scrypt hash of the 6-digit PIN
+  is_admin boolean not null default false,
+  sync_key uuid not null default gen_random_uuid(),   -- secret realtime channel id for this user's devices
+  failed_attempts int not null default 0,
+  locked_until timestamptz,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
+create table public.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  token_hash text not null unique,                    -- sha256 of the cookie token
+  device_name text,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  expires_at timestamptz not null default now() + interval '365 days'
+);
+create index sessions_user_idx on public.sessions(user_id);
+
+alter table public.playlists
+  add column owner_id uuid not null references public.users(id) on delete cascade,
+  add column visibility text not null default 'private' check (visibility in ('private','public')),
+  add column share_token text unique,                -- null = link sharing off
+  add column cover_key text,                         -- custom uploaded cover in R2
+  add column copied_from uuid references public.playlists(id) on delete set null;
+create index playlists_owner_idx on public.playlists(owner_id);
+
+create table public.playlist_members (
+  playlist_id uuid not null references public.playlists(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  role text not null check (role in ('viewer','editor')),
+  added_at timestamptz not null default now(),
+  primary key (playlist_id, user_id)
+);
+create index playlist_members_user_idx on public.playlist_members(user_id);
+
+create table public.playlist_saves (
+  user_id uuid not null references public.users(id) on delete cascade,
+  playlist_id uuid not null references public.playlists(id) on delete cascade,
+  saved_at timestamptz not null default now(),
+  primary key (user_id, playlist_id)
+);
+
+alter table public.plays add column user_id uuid references public.users(id) on delete set null;
+
+create table public.playback_state (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  device_id text,
+  device_name text,
+  state jsonb not null,          -- queue, index, position, shuffle, repeat, playing
+  updated_at timestamptz not null default now()
+);
+
+alter table public.users enable row level security;
+alter table public.sessions enable row level security;
+alter table public.playlist_members enable row level security;
+alter table public.playlist_saves enable row level security;
+alter table public.playback_state enable row level security;

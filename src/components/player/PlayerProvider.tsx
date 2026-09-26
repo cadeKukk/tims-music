@@ -1,58 +1,17 @@
 'use client';
 
-import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PlayerTrack } from '@/lib/types';
 import { coverUrl } from '@/lib/cover';
+import {
+  type LocalExtras, type NowPlayingTab, type PlayerActions, type RecentAlbum, type Repeat, type Snapshot,
+} from './context';
+import { ConnectLayer } from './ConnectLayer';
 
-type Repeat = 'off' | 'all' | 'one';
-export type NowPlayingTab = 'lyrics' | 'queue';
-export type RecentAlbum = { slug: string; title: string; artist: string; cover: string | null };
+export { usePlayer, usePlaybackTime, type NowPlayingTab, type RecentAlbum } from './context';
 
-type PlayerState = {
-  queue: PlayerTrack[];
-  index: number;
-  current: PlayerTrack | null;
-  playing: boolean;
-  buffering: boolean;
-  shuffle: boolean;
-  repeat: Repeat;
-  volume: number;
-  nowPlayingOpen: boolean;
-  nowPlayingTab: NowPlayingTab;
-  recentAlbums: RecentAlbum[];
-};
-
-type PlayerActions = {
-  playTracks: (tracks: PlayerTrack[], start?: number, opts?: { shuffle?: boolean }) => void;
-  playNext: (track: PlayerTrack) => void;
-  addToQueue: (track: PlayerTrack) => void;
-  jumpTo: (index: number) => void;
-  removeAt: (index: number) => void;
-  toggle: () => void;
-  next: () => void;
-  prev: () => void;
-  seek: (t: number) => void;
-  setVolume: (v: number) => void;
-  toggleShuffle: () => void;
-  cycleRepeat: () => void;
-  setNowPlayingOpen: (open: boolean) => void;
-  /** Opens Now Playing, optionally on a specific tab. */
-  openNowPlaying: (tab?: NowPlayingTab) => void;
-  setNowPlayingTab: (tab: NowPlayingTab) => void;
-};
-
-const PlayerContext = createContext<(PlayerState & PlayerActions) | null>(null);
-// Time lives in its own context so the ~4Hz timeupdate only re-renders the progress UI.
-const TimeContext = createContext<{ time: number; duration: number }>({ time: 0, duration: 0 });
-
-export const usePlayer = () => {
-  const ctx = useContext(PlayerContext);
-  if (!ctx) throw new Error('usePlayer must be used inside <PlayerProvider>');
-  return ctx;
-};
-export const usePlaybackTime = () => useContext(TimeContext);
+// A tiny silent WAV, used to unlock the audio element inside a tap on iOS.
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
 const STORAGE_KEY = 'tm_player_v1';
 const RECENT_KEY = 'tm_recent_albums_v1';
@@ -107,13 +66,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const restored = useRef(false);
   const listened = useRef({ id: '', secs: 0, lastT: 0, logged: false });
   const retried = useRef<string | null>(null);
+  const priming = useRef(false);
+  const changedAt = useRef(0);
+  const firstPersist = useRef(true);
 
   // ---- restore last session (queue, position, settings) ----
   useEffect(() => {
     const saved = readStorage<{
       queue?: PlayerTrack[]; original?: PlayerTrack[]; index?: number; time?: number;
-      shuffle?: boolean; repeat?: Repeat; volume?: number;
+      shuffle?: boolean; repeat?: Repeat; volume?: number; changedAt?: number;
     }>(STORAGE_KEY, {});
+    changedAt.current = saved.changedAt ?? 0;
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from localStorage */
     if (saved.queue?.length) {
       setQueue(saved.queue);
@@ -132,7 +95,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // ---- persist ----
   useEffect(() => {
     if (!restored.current) return;
-    const save = () => writeStorage(STORAGE_KEY, { queue, original, index, time: resumeAt.current ?? audioRef.current?.currentTime ?? 0, shuffle, repeat, volume });
+    // The first run just echoes the restored state back; later runs are real queue/track changes.
+    if (firstPersist.current) firstPersist.current = false;
+    else if (queue.length) changedAt.current = Date.now();
+    const save = () => writeStorage(STORAGE_KEY, {
+      queue, original, index, time: resumeAt.current ?? audioRef.current?.currentTime ?? 0, shuffle, repeat, volume, changedAt: changedAt.current,
+    });
     save();
     const id = setInterval(save, 5000);
     window.addEventListener('pagehide', save);
@@ -384,27 +352,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     else document.title = "Echo Chamber";
   }, [current, playing]);
 
-  // ---- keyboard shortcuts ----
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
-      if (el.closest('input, textarea, select, [contenteditable="true"]') || e.metaKey || e.ctrlKey || e.altKey) return;
-      const audio = audioRef.current;
-      if (e.code === 'Space') { e.preventDefault(); toggle(); }
-      else if (e.key === 'ArrowRight' && e.shiftKey) next();
-      else if (e.key === 'ArrowLeft' && e.shiftKey) prev();
-      else if (e.key === 'ArrowRight' && audio) seek(audio.currentTime + 5);
-      else if (e.key === 'ArrowLeft' && audio) seek(audio.currentTime - 5);
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setVolume(volume + 0.1); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); setVolume(volume - 0.1); }
-      else if (e.key.toLowerCase() === 's') toggleShuffle();
-      else if (e.key.toLowerCase() === 'r') cycleRepeat();
-      else if (e.key === 'Escape') setNowPlayingOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [toggle, next, prev, seek, setVolume, volume, toggleShuffle, cycleRepeat]);
-
   const value = useMemo(() => ({
     queue, index, current, playing, buffering, shuffle, repeat, volume, nowPlayingOpen, nowPlayingTab, recentAlbums,
     playTracks, playNext, addToQueue, jumpTo, removeAt, toggle, next: () => next(), prev, seek, setVolume,
@@ -414,15 +361,58 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const timeValue = useMemo(() => ({ time, duration }), [time, duration]);
 
+  const extras = useMemo<LocalExtras>(() => ({
+    snapshot: () => ({
+      queue, original, index, shuffle, repeat,
+      position: resumeAt.current ?? audioRef.current?.currentTime ?? 0,
+      playing: !!audioRef.current && !audioRef.current.paused,
+    }),
+    loadSnapshot: (snap: Snapshot, play: boolean) => {
+      const audio = audioRef.current;
+      const i = Math.min(Math.max(0, snap.index), snap.queue.length - 1);
+      const track = snap.queue[i];
+      if (!audio || !track) return;
+      setQueue(snap.queue);
+      setOriginal(snap.original?.length ? snap.original : snap.queue);
+      setShuffle(!!snap.shuffle);
+      setRepeat(snap.repeat ?? 'off');
+      setIndex(i);
+      wantPlay.current = play;
+      resumeAt.current = snap.position || 0;
+      audio.src = streamUrl(track.id);
+      if (play) audio.play().catch(() => setPlaying(false));
+    },
+    play: () => {
+      wantPlay.current = true;
+      audioRef.current?.play().catch(() => {});
+    },
+    pause: () => {
+      wantPlay.current = false;
+      audioRef.current?.pause();
+    },
+    prime: () => {
+      const audio = audioRef.current;
+      if (!audio || !audio.paused) return;
+      priming.current = true;
+      if (!audio.src) audio.src = SILENT;
+      audio.muted = true;
+      audio.play()
+        .then(() => audio.pause())
+        .catch(() => {})
+        .finally(() => { audio.muted = false; priming.current = false; });
+    },
+    changedAt: () => changedAt.current,
+    currentTime: () => audioRef.current?.currentTime ?? 0,
+  }), [queue, original, index, shuffle, repeat]);
+
   return (
-    <PlayerContext.Provider value={value}>
-      <TimeContext.Provider value={timeValue}>
+    <ConnectLayer local={value} localTime={timeValue} extras={extras}>
         {children}
         <audio
           ref={audioRef}
           preload="auto"
-          onPlay={() => { setPlaying(true); rememberAlbum(); }}
-          onPause={() => setPlaying(false)}
+          onPlay={() => { if (priming.current) return; setPlaying(true); rememberAlbum(); }}
+          onPause={() => { if (!priming.current) setPlaying(false); }}
           onWaiting={() => setBuffering(true)}
           onPlaying={() => setBuffering(false)}
           onCanPlay={() => setBuffering(false)}
@@ -433,7 +423,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           onError={onError}
         />
         <audio ref={preloadRef} preload="auto" muted aria-hidden />
-      </TimeContext.Provider>
-    </PlayerContext.Provider>
+    </ConnectLayer>
   );
 }

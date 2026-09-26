@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Disc3, Home, ListMusic, Mic2, Plus, Search } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Disc3, Home, ListMusic, Mic2, Plus, Search, Users } from 'lucide-react';
+import { AccountMenu } from './account/AccountMenu';
 import { coverUrl } from '@/lib/cover';
 import { usePlaylists } from './playlists/PlaylistsProvider';
 import { PlaylistCover } from './playlists/PlaylistCover';
@@ -21,12 +22,7 @@ type SidebarArtist = { slug: string; name: string; cover: string | null };
 
 export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
   const path = usePathname();
-  const router = useRouter();
-  const { playlists, create } = usePlaylists();
-  const newPlaylist = async () => {
-    const id = await create(`My playlist #${playlists.length + 1}`);
-    if (id) router.push(`/playlist/${id}`);
-  };
+  const { playlists, startNew } = usePlaylists();
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface/60 pb-[var(--player-h)] backdrop-blur md:flex">
       <Link href="/" className="flex items-center gap-2.5 px-6 pt-6 pb-5">
@@ -46,11 +42,20 @@ export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
             {label}
           </Link>
         ))}
+        <Link
+          href="/people"
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            path.startsWith('/people') || path.startsWith('/u/') ? 'bg-hover text-fg' : 'text-muted hover:text-fg'
+          }`}
+        >
+          <Users className="size-[18px]" strokeWidth={2.2} />
+          People
+        </Link>
       </nav>
       <div className="flex-1 overflow-y-auto px-3 pb-4">
         <div className="mt-6 flex items-center justify-between px-3 pb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-faint">Playlists</span>
-          <button onClick={newPlaylist} title="New playlist" aria-label="New playlist" className="grid size-6 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg">
+          <button onClick={startNew} title="New playlist" aria-label="New playlist" className="grid size-6 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg">
             <Plus className="size-4" />
           </button>
         </div>
@@ -63,8 +68,15 @@ export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
               path === `/playlist/${p.id}` ? 'bg-hover text-fg' : 'text-muted hover:bg-hover/60 hover:text-fg'
             }`}
           >
-            <PlaylistCover covers={p.covers} className="size-8 shrink-0 rounded" />
-            <span className="truncate">{p.name}</span>
+            <PlaylistCover covers={p.covers} custom={p.customCover} className="size-8 shrink-0 rounded" />
+            <span className="min-w-0">
+              <span className="block truncate">{p.name}</span>
+              {p.role !== 'owner' && (
+                <span className="block truncate text-[11px] text-faint">
+                  {p.role === 'editor' ? 'Shared · can edit' : p.role === 'viewer' ? 'Shared with you' : 'Saved'} · {p.owner.username}
+                </span>
+              )}
+            </span>
           </Link>
         ))}
         <div className="mt-6 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-faint">Artists</div>
@@ -81,6 +93,9 @@ export function Sidebar({ artists }: { artists: SidebarArtist[] }) {
             <span className="truncate">{a.name}</span>
           </Link>
         ))}
+      </div>
+      <div className="border-t border-line p-3">
+        <AccountMenu />
       </div>
     </aside>
   );

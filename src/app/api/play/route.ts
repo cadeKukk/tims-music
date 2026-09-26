@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
+import { getUser } from '@/lib/auth';
 
 // Anonymous per-browser id so plays can later be split per listener without accounts.
 const LISTENER_COOKIE = 'tm_listener';
@@ -18,7 +19,8 @@ export async function POST(req: Request) {
       httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 365, path: '/',
     });
   }
-  const { error } = await db.from('plays').insert({ track_id: trackId, listener_id: listener });
+  const user = await getUser();
+  const { error } = await db.from('plays').insert({ track_id: trackId, listener_id: listener, user_id: user?.id ?? null });
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return new Response(null, { status: 204 });
 }

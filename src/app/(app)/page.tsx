@@ -5,6 +5,7 @@ import { Shelf } from '@/components/Shelf';
 import { TrackList } from '@/components/TrackList';
 import { Cover } from '@/components/Cover';
 import { Greeting, JumpBackIn, YourPlaylists } from './HomeClient';
+import { AccountButton } from '@/components/account/AccountMenu';
 import type { Album } from '@/lib/types';
 
 export const revalidate = 60;
@@ -18,8 +19,9 @@ export default async function HomePage() {
   const home = await getHome();
   return (
     <div className="fade-in">
-      <div className="bg-gradient-to-b from-accent/15 to-transparent px-4 pt-8 pb-2 md:px-8 md:pt-10">
+      <div className="flex items-center justify-between bg-gradient-to-b from-accent/15 to-transparent px-4 pt-8 pb-2 md:px-8 md:pt-10">
         <Greeting />
+        <AccountButton />
       </div>
 
       <JumpBackIn />

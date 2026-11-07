@@ -2,6 +2,13 @@
 
 A personal streaming site for the music in the parent folder, live at https://myechochamber.vercel.app. Next.js on Vercel, catalog in Supabase, audio in Cloudflare R2.
 
+<p>
+  <img src="docs/screenshots/home-desktop.png" width="640" alt="Echo Chamber home page on a desktop browser: sidebar with Home, Search, Albums, Playlists, Artists and People, a 'Most played this month' track list and a 'Latest releases' row of album covers">
+  <img src="docs/screenshots/album-phone.png" width="190" alt="An album page on a phone: cover, title, Play and Shuffle buttons, the track list and the bottom tab bar">
+</p>
+
+*Screenshots are of this code running locally against [`docs/demo/mock_supabase.py`](docs/demo/mock_supabase.py): the artists, albums and covers are made up, so no real library or album art appears here.*
+
 ```
 Browser ──▶ Vercel (Next.js)  ── pages, search, API
    │            │
@@ -124,6 +131,35 @@ Copy `.env.example` to `.env.local` and fill it in. Add the same variables in Ve
 
 ```
 npm run dev      # http://localhost:3000
+```
+
+### Trying the UI without credentials
+
+`docs/demo/mock_supabase.py` stands in for Supabase with an invented library of 7 artists and 14 albums, and writes plain generated covers into `public/covers/` (git-ignored). Every page renders and search works (as a plain substring match, not the real fuzzy `search_catalog`); playback doesn't, because there is no R2 bucket behind `/api/stream`. The R2 variables only need placeholder values so the routes that read them load.
+
+```
+python3 docs/demo/mock_supabase.py    # needs Pillow for the covers
+SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SECRET_KEY=demo \
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=demo \
+R2_ACCOUNT_ID=demo R2_ACCESS_KEY_ID=demo R2_SECRET_ACCESS_KEY=demo R2_BUCKET=demo \
+npm run dev
+```
+
+Run `npm run ingest` against a real project afterwards and it regenerates `public/covers/` from the music.
+
+## Project structure
+
+```
+src/app/(app)/      pages: home, search, albums, artists, album, artist, playlists, people, profiles, account, admin
+src/app/api/        route handlers: stream (signed R2 redirect), play logging, playback state, search,
+                    auth, playlists and sharing, admin, lyrics, keepalive
+src/app/signin/     sign-in and sign-up page
+src/components/     player (bar, Now Playing, device sync), playlists, account menu, shared UI
+src/lib/            Supabase client, catalog queries, auth and sessions, playlists, R2 signing
+scripts/ingest.mjs  scans the music folder, uploads to R2, writes the catalog, builds covers
+scripts/icons.mjs   renders the app icons from public/icons/icon.svg
+supabase/schema.sql tables, RLS and the top_tracks function
+docs/demo/          mock Supabase for running the UI on made-up data
 ```
 
 Keyboard shortcuts: Space = play/pause, ←/→ = seek 5s, Shift+←/→ = previous/next, ↑/↓ = volume, S = shuffle, R = repeat, Esc = close Now Playing.
